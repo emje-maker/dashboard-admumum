@@ -89,6 +89,17 @@
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy-deep);color:#fff;padding:13px 22px;border-radius:11px;font-size:13.5px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);transition:transform .35s;z-index:60}#toast.show{transform:translateX(-50%) translateY(0)}
   @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.chart-box{height:360px}.srcinfo{display:none}.dd-grid{grid-template-columns:1fr}}
   @media(max-width:560px){.kpis{grid-template-columns:1fr}header.top h1{font-size:20px}.panel-head{flex-direction:column;align-items:flex-start}}
+  #orgStrip{margin:-10px 0 22px}
+  .ostrip-label{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .org-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:6px}
+  .obrk{background:var(--surface-2);border:1px solid var(--hair);border-radius:10px;padding:7px 12px}
+  .obrow{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px dashed var(--hair)}
+  .obrow:last-child{border-bottom:0}
+  .obrow span{color:var(--muted)} .obrow b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .obrow.h span::before,.obrow.s span::before,.obrow.e span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  .obrow.h span::before{background:var(--teal)} .obrow.s span::before{background:var(--gold)} .obrow.e span::before{background:var(--red)}
+  @media(max-width:900px){.org-grid4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.org-grid4{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -113,6 +124,7 @@
 
 <div class="wrap">
   <section class="kpis" id="kpis"></section>
+  <div id="orgStrip"></div>
   <div id="scopeBanner" style="display:none;margin:-10px 0 18px;font-size:13px;color:var(--navy);background:#E7F0F3;border:1px solid #CFE2E8;border-left:4px solid var(--teal);border-radius:10px;padding:11px 16px"></div>
 
   <section class="panel">
@@ -241,9 +253,10 @@ function fillOrg(){
 }
 function fillUnits(){
   const su=document.getElementById("selUnit");const prev=UNITSCOPE;su.innerHTML="";
-  const o0=document.createElement("option");o0.value="";o0.textContent="Semua Unit (Konsolidasi)";su.appendChild(o0);
-  allUnits().forEach(u=>{const o=document.createElement("option");o.value=u;o.textContent=u;su.appendChild(o);});
-  if(![""].concat(allUnits()).includes(prev))UNITSCOPE="";
+  const o0=document.createElement("option");o0.value="";o0.textContent=ORGSCOPE?"— Semua unit "+({HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]||"")+" —":"— Semua unit (Holding + SHAP) —";su.appendChild(o0);
+  let units=allUnits().filter(u=>{const g=(AGG.u2o&&AGG.u2o[u])||"";return ORGSCOPE?g===ORGSCOPE:(g==="HOLDING"||g==="SHAP");});
+  units.forEach(u=>{const op=document.createElement("option");op.value=u;op.textContent=u;su.appendChild(op);});
+  if(!units.includes(prev))UNITSCOPE="";
   su.value=UNITSCOPE;
 }
 function fillMonths(){
@@ -255,8 +268,8 @@ function fillMonths(){
 }
 document.getElementById("selYear").addEventListener("change",e=>{YEAR=+e.target.value;fillMonths();renderAll();});
 document.getElementById("selMonth").addEventListener("change",e=>{MONTH=+e.target.value;renderAll();});
-document.getElementById("selUnit").addEventListener("change",e=>{UNITSCOPE=e.target.value;if(UNITSCOPE){ORGSCOPE="";const so=document.getElementById("selOrg");if(so)so.value="";}renderAll();});
-document.getElementById("selOrg").addEventListener("change",e=>{ORGSCOPE=e.target.value;if(ORGSCOPE){UNITSCOPE="";const su=document.getElementById("selUnit");if(su)su.value="";}renderAll();});
+document.getElementById("selUnit").addEventListener("change",e=>{UNITSCOPE=e.target.value;renderAll();});
+document.getElementById("selOrg").addEventListener("change",e=>{ORGSCOPE=e.target.value;UNITSCOPE="";fillUnits();renderAll();});
 
 function rkapArr(){if(UNITSCOPE){return (AGG.rkap2026&&AGG.rkap2026.unit[UNITSCOPE])||null;}if(ORGSCOPE){return (AGG.rkap2026&&AGG.rkap2026.org[ORGSCOPE])||null;}return (AGG.rkap2026&&AGG.rkap2026.consol)||RKAP;}
 function rows(){
@@ -489,7 +502,22 @@ function renderSrc(){
   document.getElementById("srcTop").innerHTML=`Nilai dalam juta Rupiah`;
   document.getElementById("periodTxt").innerHTML=`Realisasi <b>s.d ${MONTHNAMES[MONTH]} ${YEAR}</b> · ${UNITSCOPE?`Unit <b>${UNITSCOPE}</b>`:ORGSCOPE?`Entitas <b>${{HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]}</b>`:`<b>Konsolidasi</b> (Holding + SHAP − Eliminasi)`} · pembanding YoY`;
 }
-function renderAll(){renderKPI();buildTrend();buildChart(curView);renderTable();populateDD();renderDD();renderSrc();}
+function renderOrgStrip(){
+  const el=document.getElementById("orgStrip");
+  if(UNITSCOPE||ORGSCOPE){el.style.display="none";return;}
+  el.style.display="";
+  const oc=AGG.orgcube;
+  const val=k=>(oc[YEAR]&&oc[YEAR][MONTH]&&oc[YEAR][MONTH][k])?oc[YEAR][MONTH][k].reduce((a,b)=>a+b,0):0;
+  const rkapPct=k=>{if(YEAR!==TYEAR||!AGG.rkap2026||!AGG.rkap2026.org[k])return null;const r=AGG.rkap2026.org[k].reduce((a,b)=>a+b,0);return r?Math.round(val(k)/r*100):null;};
+  const tgtPct=k=>{if(YEAR!==TYEAR||!AGG.target||!AGG.target.org[MONTH]||!AGG.target.org[MONTH][k])return null;const t=AGG.target.org[MONTH][k].reduce((a,b)=>a+b,0);return t?Math.round(val(k)/t*100):null;};
+  const E=[["HOLDING","Holding","h"],["SHAP","SHAP","s"],["ELIM","Elim","e"]];
+  const cell=fn=>`<div class="obrk">`+E.map(([k,nm,c])=>`<div class="obrow ${c}"><span>${nm}</span><b>${fn(k)}</b></div>`).join("")+`</div>`;
+  const cReal=cell(k=>fmt(val(k)));
+  const cRkap=cell(k=>{const p=rkapPct(k);return p==null?"–":p+"%";});
+  const cTgt=cell(k=>{const p=tgtPct(k);return p==null?"–":p+"%";});
+  el.innerHTML=`<div class="ostrip-label">Capaian per organisasi · s.d ${MONTHNAMES[MONTH]} ${YEAR}</div><div class="org-grid4">${cReal}${cRkap}${cTgt}<div></div></div>`;
+}
+function renderAll(){renderKPI();renderOrgStrip();buildTrend();buildChart(curView);renderTable();populateDD();renderDD();renderSrc();}
 
 // UPDATE via Excel
 function pickCol(row,names){for(const k in row){const kk=String(k).trim().toLowerCase();if(names.indexOf(kk)>=0)return row[k];}return undefined;}
