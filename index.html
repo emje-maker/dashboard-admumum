@@ -139,7 +139,6 @@
       <div class="tabs" id="tabs">
         <button data-view="yoy3" class="active">Realisasi (YoY)</button>
         <button data-view="targetvs">Target vs Realisasi</button>
-        <button data-view="absorb">Penyerapan RKAP 2026</button>
         <button data-view="year">Real. Setahun vs RKAP</button>
         <button data-view="unit">Ranking Unit (H/SHAP)</button>
         <button data-view="org">Per Organisasi</button>
@@ -427,15 +426,17 @@ function buildChart(view){
     setHead("Penyerapan Anggaran thd RKAP 2026",`Realisasi s.d ${MONTHNAMES[MONTH]} ÷ RKAP 2026 · 15 unsur tertinggi`,`Acuan prorata ${MONTH} bulan ≈ ${target}%. Batang merah = melebihi prorata.`);
   } else if(view==="year"){
     const d=[...r].sort((a,b)=>b.rkap-a.rkap).slice(0,12);
-    chart=new Chart(ctx,{type:"bar",data:{labels:d.map(x=>x.name),datasets:[{label:`Realisasi Setahun ${YEAR}`,data:d.map(x=>x.full),backgroundColor:C.teal,borderRadius:3},{label:"RKAP 2026 (target)",data:d.map(x=>x.rkap),backgroundColor:C.navy,borderRadius:3}]},options:{...baseBar(),indexAxis:"y"}});
-    setHead(`Realisasi Setahun ${YEAR} vs RKAP 2026`,"12 unsur dengan RKAP terbesar"+(AGG.unsur[YEAR][12]?"":" · tahun berjalan belum lengkap"),"Realisasi setahun terisi penuh hanya untuk tahun yang sudah selesai.");
+    const complete=!!(AGG.unsur[YEAR]&&AGG.unsur[YEAR][12]);
+    const realLbl=complete?`Realisasi Setahun ${YEAR}`:`Realisasi s.d ${MONTHNAMES[MONTH]} ${YEAR}`;
+    chart=new Chart(ctx,{type:"bar",data:{labels:d.map(x=>x.name),datasets:[{label:realLbl,data:d.map(x=>complete?x.full:x.cur),backgroundColor:C.teal,borderRadius:3},{label:"RKAP 2026 (target)",data:d.map(x=>x.rkap),backgroundColor:C.navy,borderRadius:3}]},options:{...baseBar(),indexAxis:"y"}});
+    setHead(`${realLbl} vs RKAP 2026`,"12 unsur dengan RKAP terbesar"+(complete?"":` · realisasi s.d ${MONTHNAMES[MONTH]} (tahun berjalan)`),complete?"Realisasi setahun terisi penuh hanya untuk tahun yang sudah selesai.":`Tahun berjalan: batang realisasi memakai akumulasi s.d ${MONTHNAMES[MONTH]} ${YEAR} terhadap RKAP setahun.`);
   } else if(view==="unit"){
     const u=cubeAt(YEAR,MONTH);
-    let tot=Object.entries(u).map(([k,a])=>({unit:k,val:a.reduce((x,y)=>x+y,0),g:(AGG.u2o&&AGG.u2o[k])||""})).filter(x=>x.g==="HOLDING"||x.g==="SHAP");
+    let tot=Object.entries(u).map(([k,a])=>({unit:k,val:a.reduce((x,y)=>x+y,0),g:(AGG.u2o&&AGG.u2o[k])||""})).filter(x=>ORGSCOPE?x.g===ORGSCOPE:(x.g==="HOLDING"||x.g==="SHAP"));
     tot.sort((a,b)=>b.val-a.val);tot=tot.slice(0,15);
     chart=new Chart(ctx,{type:"bar",data:{labels:tot.map(x=>x.unit),datasets:[{label:"Realisasi",data:tot.map(x=>x.val),backgroundColor:tot.map(x=>x.g==="HOLDING"?C.teal:C.gold),borderRadius:3}]},
       options:{...baseBar(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${tot[c.dataIndex].g==="HOLDING"?"Holding":"SHAP"}: ${c.parsed.x.toLocaleString("id-ID")} jt`}}},indexAxis:"y"}});
-    setHead("Ranking Unit — Holding & SHAP",`Top 15 unit · realisasi s.d ${MONTHNAMES[MONTH]} ${YEAR}`,"Teal = Holding, emas = SHAP. Buka panel \"Telusuri Detail\" lalu pilih Grup untuk ranking lengkap per entitas.");
+    setHead("Ranking Unit — "+(ORGSCOPE?({HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]||"Holding & SHAP"):"Holding & SHAP"),`Top 15 unit · realisasi s.d ${MONTHNAMES[MONTH]} ${YEAR}`,"Teal = Holding, emas = SHAP. Buka panel \"Telusuri Detail\" lalu pilih Grup untuk ranking lengkap per entitas.");
   } else {
     const ys=yearsAvail();const g=o=>ys.map(y=>(AGG.org[y]&&AGG.org[y][MONTH]?AGG.org[y][MONTH][o]:null));
     chart=new Chart(ctx,{type:"bar",data:{labels:ys,datasets:[{label:"Holding",data:g("HOLDING"),backgroundColor:C.teal,borderRadius:3,stack:"s"},{label:"SHAP",data:g("SHAP"),backgroundColor:C.gold,borderRadius:3,stack:"s"},{label:"Eliminasi",data:g("ELIM"),backgroundColor:C.red,borderRadius:3,stack:"s"}]},
@@ -453,7 +454,7 @@ const absorbCell=v=>{if(v==null)return`<td class="num">–</td>`;const t=Math.ro
 function renderTable(){
   document.getElementById("thPrev").childNodes[0].nodeValue=`${MONTHNAMES[MONTH]} ${YEAR-1} `;
   document.getElementById("thCur").childNodes[0].nodeValue=`${MONTHNAMES[MONTH]} ${YEAR} `;
-  {const _rk=document.getElementById("thRkap");if(_rk)_rk.childNodes[0].nodeValue=(UNITSCOPE||ORGSCOPE)?"RKAP 2026 (Des) ":"RKAP 2026 ";}
+  {const _rk=document.getElementById("thRkap");if(_rk)_rk.childNodes[0].nodeValue=(UNITSCOPE||ORGSCOPE)?"RKAP 2026 (AO) ":"RKAP 2026 ";}
   let data=rows().filter(r=>r.name.toLowerCase().includes(filter));
   data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];if(sortKey==="name")return a.name.localeCompare(b.name)*sortDir;return ((x==null?-1e15:x)-(y==null?-1e15:y))*sortDir;});
   const t=totals();
@@ -502,7 +503,7 @@ function renderDD(){if(ddChart)ddChart.destroy();ddMode==="unit"?renderUnitView(
 function renderUnitView(){
   const cur=cubeAt(YEAR,MONTH)[ddUnit]||order().map(()=>0);
   const pc=cubeAt(YEAR-1,MONTH);const prev=pc[ddUnit]||null;
-  const rkapU=(YEAR===TYEAR&&AGG.target&&AGG.target.unit&&AGG.target.unit[12]&&AGG.target.unit[12][ddUnit])?AGG.target.unit[12][ddUnit]:null;
+  const rkapU=(YEAR===TYEAR&&AGG.rkap2026&&AGG.rkap2026.unit[ddUnit])?AGG.rkap2026.unit[ddUnit]:null;
   let rows=order().map((n,i)=>{const rk=rkapU?rkapU[i]:null;return {name:n,cur:cur[i],prev:prev?prev[i]:null,yoy:prev?yoyOf(cur[i],prev[i]):null,rkap:rk,abs:(rk!=null&&rk!==0)?Math.round(cur[i]/rk*100):null};}).filter(r=>r.cur!==0||(r.prev&&r.prev!==0)||(r.rkap&&r.rkap!==0));
   rows.sort((a,b)=>(b.cur-a.cur));
   const total=cur.reduce((a,b)=>a+b,0);
@@ -515,10 +516,10 @@ function renderUnitView(){
   document.getElementById("ddSummary").innerHTML=`
     <div class="chip"><div class="c-lbl">Realisasi s.d ${MONTHNAMES[MONTH]} ${YEAR}</div><div class="c-val num">${fmt(total)} <span style="font-size:12px;color:var(--muted)">jt</span></div></div>
     <div class="chip rank"><div class="c-lbl">Peringkat di ${GNu[gU]||"Grup"}</div><div class="c-val num">#${rank} <span style="font-size:12px;color:var(--muted)">dari ${ut.length}</span></div></div>
-    `+(rkapTot!=null?`<div class="chip"><div class="c-lbl">RKAP 2026 (Target Des)</div><div class="c-val num">${fmt(rkapTot)} <span style="font-size:12px;color:var(--muted)">jt</span></div></div>
+    `+(rkapTot!=null?`<div class="chip"><div class="c-lbl">RKAP 2026 (AO)</div><div class="c-val num">${fmt(rkapTot)} <span style="font-size:12px;color:var(--muted)">jt</span></div></div>
     <div class="chip"><div class="c-lbl">Penyerapan thd RKAP 2026</div><div class="c-val num" style="color:${absTot>=target?'var(--red)':'var(--navy)'}">${absTot}%</div></div>`:'')+`
     <div class="chip"><div class="c-lbl">% YoY</div><div class="c-val num" style="color:${yoyTot==null?'var(--muted)':yoyTot>=100?'var(--red)':'var(--green)'}">${yoyTot==null?'–':yoyTot+'%'}</div></div>`;
-  document.getElementById("ddTblHint").textContent=`Rincian unsur biaya untuk unit ${ddUnit} · RKAP 2026 = target Desember (urut realisasi terbesar)`;
+  document.getElementById("ddTblHint").textContent=`Rincian unsur biaya untuk unit ${ddUnit} · RKAP 2026 = AO setahun (urut realisasi terbesar)`;
   document.getElementById("ddChartHint").textContent=`Unsur biaya terbesar di unit ${ddUnit}`;
   document.getElementById("ddThead").innerHTML=`<tr><th>Unsur</th><th>${MONTHNAMES[MONTH]} ${YEAR-1}</th><th>${MONTHNAMES[MONTH]} ${YEAR}</th><th>% YoY</th><th>RKAP 2026</th><th>% Penyerapan</th></tr>`;
   document.getElementById("ddTbody").innerHTML=rows.map(r=>`<tr><td title="${r.name}">${r.name}</td><td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${r.yoy==null?'<td class="pct num">–</td>':`<td class="pct ${r.yoy>=100?'hot':'cool'} num">${r.yoy}%</td>`}<td class="num">${fmtZ(r.rkap)}</td>${r.abs==null?'<td class="pct num">–</td>':`<td class="pct ${r.abs>=target?'hot':''} num">${r.abs}%</td>`}</tr>`).join("")
@@ -526,6 +527,7 @@ function renderUnitView(){
   const top=rows.slice(0,10);
   const sets=[{label:`${YEAR}`,data:top.map(r=>r.cur),backgroundColor:C.t26,borderRadius:3}];
   if(prev)sets.unshift({label:`${YEAR-1}`,data:top.map(r=>r.prev||0),backgroundColor:C.t25,borderRadius:3});
+  if(YEAR===TYEAR)sets.push({label:"RKAP 2026 (AO)",data:top.map(r=>r.rkap||0),backgroundColor:C.navy,borderRadius:3});
   ddChart=new Chart(document.getElementById("ddChart"),{type:"bar",data:{labels:top.map(r=>r.name),datasets:sets},options:{...baseBar(),indexAxis:"y"}});
 }
 
@@ -548,6 +550,7 @@ function renderUnsurView(){
   const top=list.slice(0,15);
   const sets=[{label:`${YEAR}`,data:top.map(r=>r.cur),backgroundColor:C.t26,borderRadius:3}];
   if(Object.keys(p).length)sets.unshift({label:`${YEAR-1}`,data:top.map(r=>r.prev||0),backgroundColor:C.t25,borderRadius:3});
+  if(YEAR===TYEAR)sets.push({label:"RKAP 2026 (target)",data:top.map(r=>r.rkap||0),backgroundColor:C.navy,borderRadius:3});
   ddChart=new Chart(document.getElementById("ddChart"),{type:"bar",data:{labels:top.map(r=>r.unit),datasets:sets},options:{...baseBar(),indexAxis:"y"}});
 }
 
