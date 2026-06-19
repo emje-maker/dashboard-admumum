@@ -100,6 +100,7 @@
   .obrow.h span::before{background:var(--teal)} .obrow.s span::before{background:var(--gold)} .obrow.e span::before{background:var(--red)}
   @media(max-width:900px){.org-grid4{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:560px){.org-grid4{grid-template-columns:1fr}}
+  .kpi .val .ku{font-size:13px;font-weight:600;color:var(--muted);margin-left:5px;font-family:'Inter',sans-serif;letter-spacing:0}
 </style>
 </head>
 <body>
@@ -324,7 +325,7 @@ function renderKPI(){
       ((YEAR===TYEAR)?(()=>{const P=prognosa(PROGW);const fy=P?P.fy:null;const pc=(fy&&t.rkap)?Math.round(fy/t.rkap*100):null;const wl=Math.round(PROGW*100)+":"+Math.round((1-PROGW)*100);return {cls:"k-amber",lbl:"Proyeksi Setahun 2026",val:(fy?fmt(fy):"belum lengkap"),sub:(fy?`RKAP ${fmt(t.rkap)} · ${pc}% · bobot ${wl}`:`RKAP 2026: ${fmt(t.rkap)}`),prog:pc};})():{cls:"",lbl:`Realisasi Setahun ${YEAR}`,val:(t.full?fmt(t.full):"belum lengkap"),sub:`RKAP 2026: ${fmt(t.rkap)}`}),
     ];
   }
-  document.getElementById("kpis").innerHTML=cards.map(k=>`<div class="kpi ${k.cls}"><div class="lbl">${k.lbl}</div><div class="val num">${k.val}</div>${k.badge||""}<div class="sub num">${k.sub}</div>${k.prog!=null?`<div class="bar-mini"><i style="width:${Math.min(Math.max(k.prog,0),100)}%"></i></div>`:""}</div>`).join("");
+  document.getElementById("kpis").innerHTML=cards.map(k=>`<div class="kpi ${k.cls}"><div class="lbl">${k.lbl}</div><div class="val num">${k.val}${/^\(?[\d.]+\)?$/.test(k.val)?'<span class="ku">jt</span>':''}</div>${k.badge||""}<div class="sub num">${k.sub}</div>${k.prog!=null?`<div class="bar-mini"><i style="width:${Math.min(Math.max(k.prog,0),100)}%"></i></div>`:""}</div>`).join("");
   const bn=document.getElementById("scopeBanner");
   if(UNITSCOPE){bn.style.display="";bn.innerHTML=`Menampilkan khusus unit <b>${UNITSCOPE}</b> — KPI, tren & tabel unsur di bawah sudah disaring untuk unit ini. <a href="#" id="clrScope" style="color:var(--teal);font-weight:600">Kembali ke Konsolidasi</a>`;}
   else if(ORGSCOPE){const NM={HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE];bn.style.display="";bn.innerHTML=`Menampilkan entitas <b>${NM}</b> saja — bagian dari konsolidasi (Holding + SHAP − Eliminasi). <a href="#" id="clrScope" style="color:var(--teal);font-weight:600">Kembali ke Konsolidasi</a>`;}
