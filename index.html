@@ -143,8 +143,13 @@
         <button data-view="year">Real. Setahun vs RKAP</button>
         <button data-view="unit">Ranking Unit (H/SHAP)</button>
         <button data-view="org">Per Organisasi</button>
+        <button data-view="prognosa">Prognosa 2026</button>
       </div></div>
-    <div class="panel-body"><div class="chart-box"><canvas id="mainChart"></canvas></div>
+    <div class="panel-body"><div id="progCtl" style="display:none;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--muted);font-weight:600">Bobot Seasonal-YoY : Prorata</span>
+      <input id="progW" type="range" min="0" max="100" step="5" value="70" style="flex:1;min-width:150px;max-width:300px;accent-color:var(--teal)">
+      <span id="progWlbl" style="font-size:12px;font-weight:700;min-width:54px">70 : 30</span></div>
+      <div class="chart-box"><canvas id="mainChart"></canvas></div>
       <p class="chart-note" id="chartNote"></p></div>
   </section>
 
@@ -317,7 +322,7 @@ function renderKPI(){
       {cls:"k-amber",lbl:`Realisasi s.d ${MONTHNAMES[MONTH]} ${YEAR}`,val:fmt(t.cur),badge:yb,sub:`Thn lalu (${MONTHNAMES[MONTH]} ${YEAR-1}): ${t.prev?fmt(t.prev):'—'}`},
       {cls:"k-navy",lbl:"Penyerapan thd RKAP 2026",val:(t.annual!=null?t.annual+"%":"—"),sub:`${fmt(t.cur)} dari RKAP ${fmt(t.rkap)}`,prog:t.annual},
       {cls:"k-slate",lbl:`Realisasi vs Target s.d ${MONTHNAMES[MONTH]}`,val:(tp!=null?tp+"%":"—"),sub:(ttot!=null?`Target: ${fmt(ttot)} jt`:(YEAR===2026?"—":"Target hanya 2026")),prog:tp},
-      {cls:"",lbl:`Realisasi Setahun ${YEAR}`,val:(t.full?fmt(t.full):"belum lengkap"),sub:`RKAP 2026: ${fmt(t.rkap)}`},
+      ((YEAR===TYEAR)?(()=>{const P=prognosa(PROGW);const fy=P?P.fy:null;const pc=(fy&&t.rkap)?Math.round(fy/t.rkap*100):null;const wl=Math.round(PROGW*100)+":"+Math.round((1-PROGW)*100);return {cls:"k-amber",lbl:"Proyeksi Setahun 2026",val:(fy?fmt(fy):"belum lengkap"),sub:(fy?`RKAP ${fmt(t.rkap)} · ${pc}% · bobot ${wl}`:`RKAP 2026: ${fmt(t.rkap)}`),prog:pc};})():{cls:"",lbl:`Realisasi Setahun ${YEAR}`,val:(t.full?fmt(t.full):"belum lengkap"),sub:`RKAP 2026: ${fmt(t.rkap)}`}),
     ];
   }
   document.getElementById("kpis").innerHTML=cards.map(k=>`<div class="kpi ${k.cls}"><div class="lbl">${k.lbl}</div><div class="val num">${k.val}</div>${k.badge||""}<div class="sub num">${k.sub}</div>${k.prog!=null?`<div class="bar-mini"><i style="width:${Math.min(Math.max(k.prog,0),100)}%"></i></div>`:""}</div>`).join("");
@@ -334,6 +339,7 @@ function buildTrend(){
     const sel=(y===YEAR);return {label:""+y,data:arr,borderColor:colors[y]||C.teal,backgroundColor:colors[y]||C.teal,borderWidth:sel?3.5:2,tension:.3,spanGaps:false,
       pointRadius:arr.map((_,i)=>sel&&(i+1)===MONTH?5.5:2.2),pointBackgroundColor:arr.map((_,i)=>sel&&(i+1)===MONTH?C.red:(colors[y]||C.teal))};});
   if(AGG.target){const tl=[];for(let m=1;m<=12;m++){const a=targetArrAny(m);tl.push(a?a.reduce((x,y)=>x+y,0):null);}if(tl.some(v=>v!=null))ds.push({label:"Target 2026",data:tl,borderColor:"#8a6d1b",backgroundColor:"#8a6d1b",borderDash:[6,4],borderWidth:2,tension:.3,spanGaps:false,pointRadius:0});}
+  if(AGG.rkap2026){const P=prognosa(PROGW);if(P&&P.last<12){const pj=[];for(let m=1;m<=12;m++)pj.push(m>=P.last?Math.round(P.cum[m]):null);ds.push({label:"Proyeksi 2026",data:pj,borderColor:C.t26,backgroundColor:C.t26,borderDash:[5,4],borderWidth:2.4,tension:.3,spanGaps:false,pointRadius:0});}}
   trendChart=new Chart(document.getElementById("trendChart"),{type:"line",data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
     plugins:{legend:{position:"top",labels:{font:{family:"Inter",size:12},boxWidth:14,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${c.parsed.y.toLocaleString("id-ID")} jt`}}},
     scales:{x:{grid:{display:false},ticks:{font:{family:"Inter"}}},y:{grid:{color:"#EAF0F2"},ticks:{font:{family:"Inter",size:11},callback:v=>(v/1000).toLocaleString("id-ID")+" rb"}}}}});
@@ -343,13 +349,59 @@ const ctx=document.getElementById("mainChart");
 function setHead(t,s,n){document.getElementById("chartTitle").textContent=t;document.getElementById("chartSub").textContent=s;document.getElementById("chartNote").textContent=n;}
 function baseBar(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"top",labels:{font:{family:"Inter",size:12},boxWidth:12,padding:14}},
   tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${(c.parsed.x??c.parsed.y).toLocaleString("id-ID")} jt`}}},scales:{x:{ticks:{font:{family:"Inter"}},grid:{color:"#EAF0F2"}},y:{ticks:{font:{family:"Inter",size:11}},grid:{display:false}}}};}
-let curView="yoy3";
+let curView="yoy3";let PROGW=0.7;
+function scopeArrAt(y,m){
+  if(UNITSCOPE){const c=cubeAt(y,m);return c&&c[UNITSCOPE]?c[UNITSCOPE]:null;}
+  if(ORGSCOPE){const c=(AGG.orgcube&&AGG.orgcube[y]&&AGG.orgcube[y][m])?AGG.orgcube[y][m]:null;return c&&c[ORGSCOPE]?c[ORGSCOPE]:null;}
+  return (AGG.unsur[y]&&AGG.unsur[y][m])?AGG.unsur[y][m]:null;
+}
+function prognosa(w){
+  const n=order().length;let last=0;for(let m=1;m<=12;m++){if(scopeArrAt(2026,m))last=m;}
+  if(!last)return null;
+  const cum=new Array(13).fill(0);let fysea=0,fypro=0,ytd=0,fy25=0;
+  for(let i=0;i<n;i++){
+    const c25={},c26={};
+    for(let m=1;m<=12;m++){const a=scopeArrAt(2025,m);if(a)c25[m]=a[i];}
+    for(let m=1;m<=last;m++){const a=scopeArrAt(2026,m);if(a)c26[m]=a[i];}
+    const c26l=c26[last]||0,c25l=c25[last]||0,g=c25l?c26l/c25l:1;
+    const inc=m=>(c25[m]||0)-(c25[m-1]||0);
+    let sc=c26l;const sea={};for(let m=last+1;m<=12;m++){sc+=inc(m)*g;sea[m]=sc;}
+    const rate=c26l/last;const pro={};for(let m=last+1;m<=12;m++)pro[m]=c26l+(m-last)*rate;
+    for(let m=1;m<=last;m++)cum[m]+=(c26[m]||0);
+    for(let m=last+1;m<=12;m++)cum[m]+=w*sea[m]+(1-w)*pro[m];
+    fysea+=(sea[12]!=null?sea[12]:c26l);fypro+=(pro[12]!=null?pro[12]:c26l);ytd+=c26l;fy25+=(c25[12]||0);
+  }
+  return {cum,last,fy:cum[12],fysea,fypro,ytd,fy25};
+}
 function buildChart(view){
   curView=view;if(chart)chart.destroy();const r=rows();
   const SCOPED=UNITSCOPE||ORGSCOPE;
   if(SCOPED && (view==="absorb"||view==="year")){
     const cv=document.getElementById("mainChart");const cx=cv.getContext("2d");cx.clearRect(0,0,cv.width,cv.height);
     setHead(`Tampilan ini untuk konsolidasi`,`Sedang fokus: ${UNITSCOPE||{HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]}`,`Penyerapan RKAP & realisasi-vs-RKAP hanya tersedia untuk Konsolidasi (anggaran ditetapkan di tingkat perusahaan). Gunakan tab "Realisasi (YoY)".`);
+    return;
+  }
+  if(view==="prognosa"){
+    const w=PROGW,P=prognosa(w);
+    const SL=UNITSCOPE?("Unit "+UNITSCOPE):ORGSCOPE?({HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]):"Konsolidasi";
+    if(!P){setHead("Prognosa 2026 belum tersedia",SL,"Realisasi 2026 belum cukup untuk diproyeksikan.");return;}
+    const labels=MONTHNAMES.slice(1).map(m=>m.slice(0,3));
+    const actual=[],proj=[];
+    for(let m=1;m<=12;m++){actual.push(m<=P.last?Math.round(P.cum[m]):null);proj.push(m>=P.last?Math.round(P.cum[m]):null);}
+    const tgt=[];for(let m=1;m<=12;m++){const a=targetArrAny(m);tgt.push(a?Math.round(a.reduce((x,y)=>x+y,0)):null);}
+    const rkA=(YEAR===TYEAR)?rkapArr():null,rkTot=rkA?rkA.reduce((a,b)=>a+b,0):null;
+    const wl=Math.round(w*100)+":"+Math.round((1-w)*100);
+    const sets=[
+      {label:"Realisasi 2026",data:actual,borderColor:C.t26,backgroundColor:C.t26,borderWidth:3.2,tension:.3,spanGaps:false,pointRadius:2.6},
+      {label:"Prognosa ("+wl+")",data:proj,borderColor:C.teal,backgroundColor:C.teal,borderDash:[6,4],borderWidth:2.6,tension:.3,spanGaps:false,pointRadius:0}];
+    if(tgt.some(v=>v!=null))sets.push({label:"Target",data:tgt,borderColor:"#8a6d1b",backgroundColor:"#8a6d1b",borderDash:[3,3],borderWidth:1.6,tension:.3,spanGaps:false,pointRadius:0});
+    if(rkTot)sets.push({label:"RKAP 2026",data:labels.map((_,i)=>i===11?Math.round(rkTot):null),borderColor:C.red,backgroundColor:C.red,pointRadius:labels.map((_,i)=>i===11?6:0),pointStyle:"rectRot",showLine:false});
+    chart=new Chart(document.getElementById("mainChart"),{type:"line",data:{labels,datasets:sets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{position:"top",labels:{font:{family:"Inter",size:12},boxWidth:14,padding:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${nf(c.parsed.y)}`}}},
+      scales:{y:{ticks:{callback:v=>nf(v),font:{family:"Inter",size:11}},grid:{color:"rgba(0,0,0,.05)"}},x:{grid:{display:false},ticks:{font:{family:"Inter",size:11}}}}}});
+    const pct=rkTot?Math.round(P.fy/rkTot*100):null;
+    setHead(`Prognosa FY 2026: ${fmt(P.fy)} jt`+(pct!=null?` · ${pct}% RKAP`:""),SL+" · pola musiman 2025 × tren 2026, campur prorata",
+      `Seasonal-YoY ${fmt(P.fysea)} · Prorata ${fmt(P.fypro)} · bobot ${wl}. Garis solid = realisasi s.d ${MONTHNAMES[P.last]}, garis putus = proyeksi.`);
     return;
   }
   if(view==="yoy3"){
@@ -391,7 +443,8 @@ function buildChart(view){
     setHead(`Komposisi per Organisasi — s.d ${MONTHNAMES[MONTH]}`,"Holding + SHAP − Eliminasi = realisasi konsolidasi","Perbandingan kontribusi tiap entitas pada bulan terpilih, antar-tahun.");
   }
 }
-document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");buildChart(b.dataset.view);});
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById("progCtl").style.display=(b.dataset.view==="prognosa")?"flex":"none";buildChart(b.dataset.view);});
+(function(){const s=document.getElementById("progW");if(s)s.addEventListener("input",e=>{PROGW=(+e.target.value)/100;document.getElementById("progWlbl").textContent=Math.round(PROGW*100)+" : "+Math.round((1-PROGW)*100);if(curView==="prognosa")buildChart("prognosa");});})();
 
 // MAIN UNSUR TABLE (rows clickable -> drill to unit ranking)
 const tbody=document.getElementById("tbody");
@@ -478,19 +531,20 @@ function renderUnitView(){
 
 function renderUnsurView(){
   const idx=order().indexOf(ddUnsur);const c=cubeAt(YEAR,MONTH),p=cubeAt(YEAR-1,MONTH);
-  let list=Object.entries(c).map(([u,a])=>({unit:u,cur:a[idx]||0,prev:(p[u]?p[u][idx]:null)})).filter(x=>(x.cur!==0||(x.prev&&x.prev!==0))&&inGrp(x.unit));
+  let list=Object.entries(c).map(([u,a])=>({unit:u,cur:a[idx]||0,prev:(p[u]?p[u][idx]:null),rkap:(YEAR===TYEAR&&AGG.rkap2026&&AGG.rkap2026.unit[u])?(AGG.rkap2026.unit[u][idx]||0):null})).filter(x=>(x.cur!==0||(x.prev&&x.prev!==0))&&inGrp(x.unit));
   list.forEach(x=>x.yoy=x.prev?yoyOf(x.cur,x.prev):null);
   list.sort((a,b)=>(b.cur-a.cur)*ddSortDir>0?1:-1);list.sort((a,b)=>(b.cur-a.cur));
   const total=list.reduce((a,b)=>a+b.cur,0);
+  const totalRkap=list.reduce((a,b)=>a+(b.rkap||0),0);
   document.getElementById("ddSummary").innerHTML=`
     <div class="chip"><div class="c-lbl">Total ${ddUnsur} · s.d ${MONTHNAMES[MONTH]} ${YEAR}</div><div class="c-val num">${fmt(total)} <span style="font-size:12px;color:var(--muted)">jt</span></div></div>
     <div class="chip"><div class="c-lbl">Jumlah Unit</div><div class="c-val num">${list.length}</div></div>
     <div class="chip rank"><div class="c-lbl">Unit Tertinggi</div><div class="c-val num" style="font-size:15px">${list.length?list[0].unit:'–'}</div></div>`;
   document.getElementById("ddTblHint").textContent=`Unit dengan realisasi "${ddUnsur}" tertinggi · grup ${grpLabel()} (urut terbesar)`;
   document.getElementById("ddChartHint").textContent=`Top unit — ${ddUnsur} · ${grpLabel()}`;
-  document.getElementById("ddThead").innerHTML=`<tr><th>Unit</th><th>${MONTHNAMES[MONTH]} ${YEAR-1}</th><th>${MONTHNAMES[MONTH]} ${YEAR}</th><th>% YoY</th><th>% Porsi</th></tr>`;
-  document.getElementById("ddTbody").innerHTML=list.map(r=>`<tr><td>${r.unit}</td><td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${r.yoy==null?'<td class="pct num">–</td>':`<td class="pct ${r.yoy>=100?'hot':'cool'} num">${r.yoy}%</td>`}<td class="num">${total?Math.round(r.cur/total*100):0}%</td></tr>`).join("")
-    +`<tr class="total"><td>Total</td><td class="num">${fmt(list.reduce((a,b)=>a+(b.prev||0),0))}</td><td class="num">${fmt(total)}</td><td class="pct num">–</td><td class="num">100%</td></tr>`;
+  document.getElementById("ddThead").innerHTML=`<tr><th>Unit</th><th>${MONTHNAMES[MONTH]} ${YEAR-1}</th><th>${MONTHNAMES[MONTH]} ${YEAR}</th><th>% YoY</th><th>RKAP 2026</th><th>% thd RKAP</th><th>% Porsi</th></tr>`;
+  document.getElementById("ddTbody").innerHTML=list.map(r=>`<tr><td>${r.unit}</td><td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${r.yoy==null?'<td class="pct num">–</td>':`<td class="pct ${r.yoy>=100?'hot':'cool'} num">${r.yoy}%</td>`}<td class="num">${r.rkap==null?'–':fmt(r.rkap)}</td><td class="pct num">${r.rkap?Math.round(r.cur/r.rkap*100)+'%':'–'}</td><td class="num">${total?Math.round(r.cur/total*100):0}%</td></tr>`).join("")
+    +`<tr class="total"><td>Total</td><td class="num">${fmt(list.reduce((a,b)=>a+(b.prev||0),0))}</td><td class="num">${fmt(total)}</td><td class="pct num">–</td><td class="num">${totalRkap?fmt(totalRkap):'–'}</td><td class="pct num">${totalRkap?Math.round(total/totalRkap*100)+'%':'–'}</td><td class="num">100%</td></tr>`;
   const top=list.slice(0,15);
   const sets=[{label:`${YEAR}`,data:top.map(r=>r.cur),backgroundColor:C.t26,borderRadius:3}];
   if(Object.keys(p).length)sets.unshift({label:`${YEAR-1}`,data:top.map(r=>r.prev||0),backgroundColor:C.t25,borderRadius:3});
@@ -501,6 +555,21 @@ function renderSrc(){
   document.getElementById("srcInfo").innerHTML=`Sumber data: <b>${SRC.mode==='bawaan'?'Bawaan':'Unggahan'}</b>${SRC.when?` · ${SRC.when}`:''}`;
   document.getElementById("srcTop").innerHTML=`Nilai dalam juta Rupiah`;
   document.getElementById("periodTxt").innerHTML=`Realisasi <b>s.d ${MONTHNAMES[MONTH]} ${YEAR}</b> · ${UNITSCOPE?`Unit <b>${UNITSCOPE}</b>`:ORGSCOPE?`Entitas <b>${{HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]}</b>`:`<b>Konsolidasi</b> (Holding + SHAP − Eliminasi)`} · pembanding YoY`;
+}
+function projFYorg(k,w){
+  const get=(y,m)=>{const oo=AGG.orgcube[y]&&AGG.orgcube[y][m];return oo?oo[k]:null;};
+  const n=order().length;let last=0;for(let m=1;m<=12;m++){if(get(2026,m))last=m;}
+  if(!last)return null;let fy=0;
+  for(let i=0;i<n;i++){
+    const c25={},c26={};
+    for(let m=1;m<=12;m++){const a=get(2025,m);if(a)c25[m]=a[i];}
+    for(let m=1;m<=last;m++){const a=get(2026,m);if(a)c26[m]=a[i];}
+    const c26l=c26[last]||0,c25l=c25[last]||0,g=c25l?c26l/c25l:1;
+    const inc=m=>(c25[m]||0)-(c25[m-1]||0);
+    let sc=c26l;for(let m=last+1;m<=12;m++)sc+=inc(m)*g;
+    fy+=w*sc+(1-w)*(c26l*12/last);
+  }
+  return fy;
 }
 function renderOrgStrip(){
   const el=document.getElementById("orgStrip");
@@ -515,7 +584,8 @@ function renderOrgStrip(){
   const cReal=cell(k=>fmt(val(k)));
   const cRkap=cell(k=>{const p=rkapPct(k);return p==null?"–":p+"%";});
   const cTgt=cell(k=>{const p=tgtPct(k);return p==null?"–":p+"%";});
-  el.innerHTML=`<div class="ostrip-label">Capaian per organisasi · s.d ${MONTHNAMES[MONTH]} ${YEAR}</div><div class="org-grid4">${cReal}${cRkap}${cTgt}<div></div></div>`;
+  const cProj=cell(k=>{const f=(YEAR===TYEAR)?projFYorg(k,PROGW):null;return f==null?"–":fmt(f);});
+  el.innerHTML=`<div class="ostrip-label">Capaian per organisasi · s.d ${MONTHNAMES[MONTH]} ${YEAR}</div><div class="org-grid4">${cReal}${cRkap}${cTgt}${cProj}</div>`;
 }
 function renderAll(){renderKPI();renderOrgStrip();buildTrend();buildChart(curView);renderTable();populateDD();renderDD();renderSrc();}
 
