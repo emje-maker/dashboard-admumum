@@ -220,7 +220,7 @@
       <thead><tr>
         <th class="sortable" data-key="name">Unsur <span class="arrow">↕</span></th>
         <th class="sortable" data-key="prev" id="thPrev">Thn Lalu <span class="arrow">↕</span></th>
-        <th class="sortable sorted" data-key="cur" id="thCur">Realisasi <span class="arrow">↓</span></th>
+        <th class="sortable" data-key="cur" id="thCur">Realisasi <span class="arrow">↕</span></th>
         <th class="sortable" data-key="yoy">% YoY <span class="arrow">↕</span></th>
         <th class="sortable" data-key="full" id="thFull">Real. Setahun <span class="arrow">↕</span></th>
         <th class="sortable" data-key="rkap" id="thRkap">RKAP 2026 <span class="arrow">↕</span></th>
@@ -297,7 +297,7 @@ const C={t24:"#9DB7C2",t25:"#1C6E8C",t26:"#D8A93B",navy:"#103B4A",red:"#C0392B",
 const fmt=n=>n==null?"–":(n<0?"(":"")+Math.abs(Math.round(n)).toLocaleString("id-ID")+(n<0?")":"");
 const fmtZ=n=>(n===0||n==null)?"–":fmt(n);
 const yoyOf=(c,p)=>(p==null||p===0)?null:Math.round(c/p*100);
-let YEAR=2026,MONTH=5,UNITSCOPE="",ORGSCOPE="",chart,trendChart,ddChart,sortKey="cur",sortDir=-1,filter="";
+let YEAR=2026,MONTH=5,UNITSCOPE="",ORGSCOPE="",chart,trendChart,ddChart,sortKey=null,sortDir=-1,filter="";
 
 function order(){return AGG.order||ORDER_DEFAULT;}
 function unsurArr(y,m){return (AGG.unsur[y]&&AGG.unsur[y][m])?AGG.unsur[y][m]:order().map(()=>0);}
@@ -544,7 +544,7 @@ function renderTable(){
   {const _f=document.getElementById("thFull");if(_f)_f.childNodes[0].nodeValue=(YEAR===TYEAR)?"Proyeksi 2026 ":"Real. Setahun ";}
   {const _rk=document.getElementById("thRkap");if(_rk)_rk.childNodes[0].nodeValue=(UNITSCOPE||ORGSCOPE)?"RKAP 2026 (AO) ":"RKAP 2026 ";}
   let data=rows().filter(r=>r.name.toLowerCase().includes(filter));
-  data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];if(sortKey==="name")return a.name.localeCompare(b.name)*sortDir;return ((x==null?-1e15:x)-(y==null?-1e15:y))*sortDir;});
+  if(sortKey)data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];if(sortKey==="name")return a.name.localeCompare(b.name)*sortDir;return ((x==null?-1e15:x)-(y==null?-1e15:y))*sortDir;});
   const t=totals();
   tbody.innerHTML=data.map(r=>`<tr class="clickable" data-unsur="${r.name.replace(/"/g,'&quot;')}" title="Klik: lihat unit dengan realisasi ${r.name} tertinggi">
     <td>${r.name}</td><td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${pctCell(r.yoy)}
@@ -553,9 +553,12 @@ function renderTable(){
   tbody.querySelectorAll("tr.clickable").forEach(tr=>tr.addEventListener("click",()=>drillToUnsur(tr.dataset.unsur)));
 }
 document.querySelectorAll("#dataTable thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
-  const k=th.dataset.key;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=k==="name"?1:-1;}
+  const k=th.dataset.key;
+  if(sortKey===k){const first=(k==="name"?1:-1);if(sortDir===first)sortDir*=-1;else sortKey=null;}
+  else{sortKey=k;sortDir=k==="name"?1:-1;}
   document.querySelectorAll("#dataTable thead th").forEach(h=>{h.classList.remove("sorted");h.querySelector(".arrow").textContent="↕";});
-  th.classList.add("sorted");th.querySelector(".arrow").textContent=sortDir<0?"↓":"↑";renderTable();}));
+  if(sortKey){th.classList.add("sorted");th.querySelector(".arrow").textContent=sortDir<0?"↓":"↑";}
+  renderTable();}));
 document.getElementById("search").addEventListener("input",e=>{filter=e.target.value.toLowerCase().trim();renderTable();});
 
 // ============ DRILLDOWN ============
