@@ -697,7 +697,7 @@ function aggregateRealisasi(rowsRaw){
     if(!y||!mn||org==="KONSOLIDASI")return;
     const unit=String(pickCol(r,["unit","kode unit"])||"").trim();
     const unsur=String(pickCol(r,["unsur","akun","uraian"])||"").trim();
-    const raw=pickCol(r,["nilai","realisasi","value","jumlah"]);const val=numVal(raw);
+    const raw=pickCol(r,["nilai","realisasi","value","jumlah"]);const _v0=numVal(raw);const val=_v0==null?null:_v0/1e6;
     const ui=ord.indexOf(unsur);
     out.unsur[y]=out.unsur[y]||{};out.org[y]=out.org[y]||{};out.unit[y]=out.unit[y]||{};out.cube[y]=out.cube[y]||{};out.orgcube[y]=out.orgcube[y]||{};out._has[y]=out._has[y]||{};
     out.unsur[y][mn]=out.unsur[y][mn]||ord.map(()=>0);
