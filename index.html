@@ -219,12 +219,11 @@
     <div class="panel-body" style="padding-top:0"><div class="tbl-scroll"><table id="dataTable" class="wide">
       <thead><tr>
         <th class="sortable" data-key="name">Unsur <span class="arrow">↕</span></th>
+        <th class="sortable" data-key="rkap" id="thRkap">RKAP 2026 <span class="arrow">↕</span></th>
+        <th class="sortable" data-key="full" id="thFull">Real. Setahun <span class="arrow">↕</span></th>
+        <th class="sortable" data-key="target">Target s.d Bln <span class="arrow">↕</span></th>
         <th class="sortable" data-key="prev" id="thPrev">Thn Lalu <span class="arrow">↕</span></th>
         <th class="sortable" data-key="cur" id="thCur">Realisasi <span class="arrow">↕</span></th>
-        <th class="sortable" data-key="yoy">% YoY <span class="arrow">↕</span></th>
-        <th class="sortable" data-key="full" id="thFull">Real. Setahun <span class="arrow">↕</span></th>
-        <th class="sortable" data-key="rkap" id="thRkap">RKAP 2026 <span class="arrow">↕</span></th>
-        <th class="sortable" data-key="target">Target s.d Bln <span class="arrow">↕</span></th>
         <th class="sortable" data-key="tpct">% thd Target <span class="arrow">↕</span></th>
         <th class="sortable" data-key="annual">% thd RKAP 2026 <span class="arrow">↕</span></th>
       </tr></thead><tbody id="tbody"></tbody></table></div></div>
@@ -547,9 +546,9 @@ function renderTable(){
   if(sortKey)data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];if(sortKey==="name")return a.name.localeCompare(b.name)*sortDir;return ((x==null?-1e15:x)-(y==null?-1e15:y))*sortDir;});
   const t=totals();
   tbody.innerHTML=data.map(r=>`<tr class="clickable" data-unsur="${r.name.replace(/"/g,'&quot;')}" title="Klik: lihat unit dengan realisasi ${r.name} tertinggi">
-    <td>${r.name}</td><td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${pctCell(r.yoy)}
-    <td class="num${r.fproj?' projc':''}">${fmtZ(r.full)}</td><td class="num">${fmtZ(r.rkap)}</td><td class="num">${fmtZ(r.target)}</td>${pctCell(r.tpct)}${absorbCell(r.annual)}</tr>`).join("")
-    +`<tr class="total"><td>Grand Total</td><td class="num">${fmt(t.prev)}</td><td class="num">${fmt(t.cur)}</td>${t.yoy==null?'<td class="pct num">–</td>':`<td class="pct ${t.yoy>=100?'hot':'cool'} num">${t.yoy}%</td>`}<td class="num">${t.full?fmt(t.full):'–'}</td><td class="num">${fmt(t.rkap)}</td><td class="num">${t.target?fmt(t.target):'–'}</td><td class="pct num">${t.tpct!=null?t.tpct+'%':'–'}</td><td class="pct num">${t.annual!=null?t.annual+'%':'–'}</td></tr>`;
+    <td>${r.name}</td><td class="num">${fmtZ(r.rkap)}</td><td class="num${r.fproj?' projc':''}">${fmtZ(r.full)}</td><td class="num">${fmtZ(r.target)}</td>
+    <td class="num">${fmtZ(r.prev)}</td><td class="num"><b>${fmtZ(r.cur)}</b></td>${pctCell(r.tpct)}${absorbCell(r.annual)}</tr>`).join("")
+    +`<tr class="total"><td>Grand Total</td><td class="num">${fmt(t.rkap)}</td><td class="num">${t.full?fmt(t.full):'–'}</td><td class="num">${t.target?fmt(t.target):'–'}</td><td class="num">${fmt(t.prev)}</td><td class="num">${fmt(t.cur)}</td><td class="pct num">${t.tpct!=null?t.tpct+'%':'–'}</td><td class="pct num">${t.annual!=null?t.annual+'%':'–'}</td></tr>`;
   tbody.querySelectorAll("tr.clickable").forEach(tr=>tr.addEventListener("click",()=>drillToUnsur(tr.dataset.unsur)));
 }
 document.querySelectorAll("#dataTable thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
