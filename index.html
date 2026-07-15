@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Realisasi Biaya Administrasi Umum</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root{--navy:#103B4A;--navy-deep:#0B2A35;--teal:#1C6E8C;--teal-soft:#5FA8C4;--gold:#D8A93B;--gold-soft:#F0D58A;
-    --bg:#EEF2F4;--surface:#FFF;--surface-2:#F7FAFB;--ink:#14242B;--muted:#5C6E78;--hair:#E2E8EC;
-    --red:#C0392B;--red-bg:#FBEDEB;--green:#1E8E5A;--green-bg:#E9F5EF;--shadow:0 1px 2px rgba(16,59,74,.05),0 8px 24px -12px rgba(16,59,74,.18)}
+  :root{--navy:#0C3A5B;--navy-deep:#072940;--teal:#00A3E0;--teal-soft:#6EC9EE;--gold:#FDB913;--gold-soft:#FFDD7F;
+    --bg:#F1F8FC;--surface:#FFF;--surface-2:#F7FAFB;--ink:#14242B;--muted:#5C6E78;--hair:#E2E8EC;
+    --red:#C0392B;--red-bg:#FBEDEB;--green:#1E8E5A;--green-bg:#E9F5EF;--shadow:0 1px 2px rgba(12,58,91,.05),0 8px 24px -12px rgba(12,58,91,.18)}
   *{box-sizing:border-box}html,body{margin:0;padding:0}
-  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  body{font-family:'Roboto',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
   .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-  h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif}
+  h1,h2,h3{font-family:'Roboto',Helvetica,Arial,sans-serif}
   .wrap{max-width:1240px;margin:0 auto;padding:0 22px 60px}
   header.top{background:linear-gradient(135deg,var(--navy),var(--navy-deep));color:#fff;padding:28px 0 24px;border-bottom:3px solid var(--gold)}
   .top-inner{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
   .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-soft);font-weight:600;margin:0 0 6px}
   header.top h1{font-size:26px;font-weight:800;margin:0;letter-spacing:-.01em;line-height:1.15}
-  .period{font-size:13px;color:#Bcdae4;margin-top:7px}.period b{color:#fff;font-weight:600}
+  .period{font-size:13px;color:#BFE3F5;margin-top:7px}.period b{color:#fff;font-weight:600}
   .controls{background:var(--surface);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);
     padding:14px 18px;margin:-22px auto 24px;max-width:1196px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;position:relative;z-index:5}
   .ctl{display:flex;flex-direction:column;gap:4px}
@@ -37,10 +37,10 @@
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
   .kpi.k-amber::before{background:var(--gold)}.kpi.k-navy::before{background:var(--navy)}.kpi.k-slate::before{background:var(--teal-soft)}
   .kpi .lbl{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-  .kpi .val{font-family:'Plus Jakarta Sans',sans-serif;font-size:27px;font-weight:800;margin:8px 0 2px;letter-spacing:-.02em}
+  .kpi .val{font-family:'Roboto',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800;margin:8px 0 2px;letter-spacing:-.02em}
   .kpi .sub{font-size:12px;color:var(--muted)}
   .kpi .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:7px}
-  .badge.up{background:var(--red-bg);color:var(--red)}.badge.down{background:var(--green-bg);color:var(--green)}.badge.flat{background:#EEF2F4;color:var(--muted)}
+  .badge.up{background:var(--red-bg);color:var(--red)}.badge.down{background:var(--green-bg);color:var(--green)}.badge.flat{background:#F1F8FC;color:var(--muted)}
   .bar-mini{height:7px;border-radius:4px;background:var(--hair);margin-top:11px;overflow:hidden}.bar-mini>i{display:block;height:100%;border-radius:4px;background:var(--teal)}
   .panel{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);border:1px solid var(--hair);margin-bottom:24px;overflow:hidden}
   .panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
@@ -58,9 +58,9 @@
   .tbl-scroll{overflow-x:auto}.tbl-scroll.cap{max-height:460px;overflow-y:auto}
   table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px}
   table.wide{min-width:880px}
-  thead th{background:var(--navy);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:11px;padding:11px;text-align:right;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
-  thead th:first-child{text-align:left}thead th.sortable:hover{background:var(--teal)}
-  thead th .arrow{font-size:9px;opacity:.55;margin-left:3px}thead th.sorted .arrow{opacity:1;color:var(--gold-soft)}
+  thead th{background:#D3ECFA;color:#0C3A5B;font-family:'Roboto',Helvetica,Arial,sans-serif;font-weight:600;font-size:11px;padding:11px;text-align:right;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+  thead th:first-child{text-align:left}thead th.sortable:hover{background:#B5E0F7}
+  thead th .arrow{font-size:9px;opacity:.55;margin-left:3px}thead th.sorted .arrow{opacity:1;color:var(--teal)}
   tbody td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--hair);white-space:nowrap}
   tbody td:first-child{text-align:left;font-weight:500}tbody tr:hover{background:var(--surface-2)}
   tr.clickable{cursor:pointer}tr.clickable td:first-child::after{content:" ↗";color:var(--teal-soft);font-size:11px;opacity:0}
@@ -77,11 +77,11 @@
   .dd-summary{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 16px}
   .chip{background:var(--surface-2);border:1px solid var(--hair);border-radius:10px;padding:9px 14px}
   .chip .c-lbl{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-  .chip .c-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;margin-top:2px}
+  .chip .c-val{font-family:'Roboto',Helvetica,Arial,sans-serif;font-size:18px;font-weight:800;margin-top:2px}
   .chip.rank .c-val{color:var(--gold)}
   .hint{font-size:11.5px;color:var(--muted);margin:0 0 4px}
   footer{font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.7}
-  #drop{position:fixed;inset:0;background:rgba(11,42,53,.86);display:none;align-items:center;justify-content:center;z-index:50}#drop.show{display:flex}
+  #drop{position:fixed;inset:0;background:rgba(7,41,64,.86);display:none;align-items:center;justify-content:center;z-index:50}#drop.show{display:flex}
   .dropcard{background:#fff;border-radius:18px;padding:38px 44px;text-align:center;max-width:440px;border:3px dashed var(--teal)}
   .dropcard h3{margin:0 0 8px;font-size:19px}.dropcard p{margin:0 0 18px;font-size:13px;color:var(--muted);line-height:1.6}
   .dropcard .pick{font-family:inherit;font-size:14px;font-weight:600;color:#fff;background:var(--teal);border:0;padding:11px 22px;border-radius:10px;cursor:pointer}
@@ -100,11 +100,11 @@
   .obrow.h span::before{background:var(--teal)} .obrow.s span::before{background:var(--gold)} .obrow.e span::before{background:var(--red)}
   @media(max-width:900px){.org-grid4{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:560px){.org-grid4{grid-template-columns:1fr}}
-  .kpi .val .ku{font-size:13px;font-weight:600;color:var(--muted);margin-left:5px;font-family:'Inter',sans-serif;letter-spacing:0}
+  .kpi .val .ku{font-size:13px;font-weight:600;color:var(--muted);margin-left:5px;font-family:'Roboto',Helvetica,Arial,sans-serif;letter-spacing:0}
   .pdfbtn{background:#fff!important;color:var(--navy)!important;border:1.5px solid var(--navy)!important;margin-left:10px}
   .pdf-modal{position:fixed;inset:0;background:rgba(16,30,40,.45);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .pdf-box{background:#fff;border-radius:16px;padding:22px 24px;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:'Inter',sans-serif}
-  .pdf-box h3{margin:0 0 6px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--navy);font-size:18px}
+  .pdf-box{background:#fff;border-radius:16px;padding:22px 24px;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:'Roboto',Helvetica,Arial,sans-serif}
+  .pdf-box h3{margin:0 0 6px;font-family:'Roboto',Helvetica,Arial,sans-serif;color:var(--navy);font-size:18px}
   .pdf-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5}
   .pdf-box>label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;font-weight:600}
   .pdf-box>input{width:100%;padding:8px 10px;border:1px solid var(--hair);border-radius:8px;font-size:13px;box-sizing:border-box}
@@ -119,7 +119,7 @@
   .pdf-actions button{padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--hair);background:#fff;color:var(--ink)}
   .pdf-go{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important}
   #printHead{display:none}
-  #printHead .ph-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:var(--navy)}
+  #printHead .ph-title{font-family:'Roboto',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;color:var(--navy)}
   #printHead .ph-sub{font-size:12px;color:#333;margin-top:3px}
   #printHead .ph-meta{font-size:10.5px;color:#777;margin-top:2px}
   @media print{
@@ -183,7 +183,7 @@
   <div id="printHead"></div>
   <section class="kpis" id="kpis"></section>
   <div id="orgStrip"></div>
-  <div id="scopeBanner" style="display:none;margin:-10px 0 18px;font-size:13px;color:var(--navy);background:#E7F0F3;border:1px solid #CFE2E8;border-left:4px solid var(--teal);border-radius:10px;padding:11px 16px"></div>
+  <div id="scopeBanner" style="display:none;margin:-10px 0 18px;font-size:13px;color:var(--navy);background:#E7F0F3;border:1px solid #CBE7F5;border-left:4px solid var(--teal);border-radius:10px;padding:11px 16px"></div>
 
   <section class="panel">
     <div class="panel-head"><div><h2>Tren Realisasi Kumulatif per Bulan</h2>
@@ -292,11 +292,11 @@ let AGG={"unsur":{"2024":{"1":[105755,8921,48002,82450,60575,44392,10644,2098,26
 let SRC={mode:"bawaan",name:"Rekap Adm Umum (bawaan)",when:""};
 try{const s=localStorage.getItem("admUmumData");if(s){const o=JSON.parse(s);AGG=o.agg;SRC=o.src;}}catch(e){}
 
-const C={t24:"#9DB7C2",t25:"#1C6E8C",t26:"#D8A93B",navy:"#103B4A",red:"#C0392B",green:"#1E8E5A",teal:"#1C6E8C",gold:"#D8A93B"};
+const C={t24:"#9DB7C2",t25:"#00A3E0",t26:"#FDB913",navy:"#0C3A5B",red:"#C0392B",green:"#1E8E5A",teal:"#00A3E0",gold:"#FDB913"};
 const fmt=n=>n==null?"–":(n<0?"(":"")+Math.abs(Math.round(n)).toLocaleString("id-ID")+(n<0?")":"");
 const fmtZ=n=>(n===0||n==null)?"–":fmt(n);
 const yoyOf=(c,p)=>(p==null||p===0)?null:Math.round(c/p*100);
-let YEAR=2026,MONTH=5,UNITSCOPE="",ORGSCOPE="",chart,trendChart,ddChart,sortKey=null,sortDir=-1,filter="";
+let YEAR=2026,MONTH=0,UNITSCOPE="",ORGSCOPE="",chart,trendChart,ddChart,sortKey=null,sortDir=-1,filter="";
 
 function order(){return AGG.order||ORDER_DEFAULT;}
 function unsurArr(y,m){return (AGG.unsur[y]&&AGG.unsur[y][m])?AGG.unsur[y][m]:order().map(()=>0);}
@@ -423,7 +423,7 @@ function buildTrend(){
   const ds=ys.map(y=>{const arr=[];for(let m=1;m<=12;m++){let v;if(UNITSCOPE){const c=cubeAt(y,m);v=c[UNITSCOPE];}else if(ORGSCOPE){const c=(AGG.orgcube&&AGG.orgcube[y]&&AGG.orgcube[y][m])?AGG.orgcube[y][m]:null;v=c?c[ORGSCOPE]:null;}else{v=AGG.unsur[y]&&AGG.unsur[y][m];}arr.push(v?v.reduce((a,b)=>a+b,0):null);}
     const sel=(y===YEAR);return {label:""+y,data:arr,borderColor:colors[y]||C.teal,backgroundColor:colors[y]||C.teal,borderWidth:sel?3.5:2,tension:.3,spanGaps:false,
       pointRadius:arr.map((_,i)=>sel&&(i+1)===MONTH?5.5:2.2),pointBackgroundColor:arr.map((_,i)=>sel&&(i+1)===MONTH?C.red:(colors[y]||C.teal))};});
-  if(AGG.target){const tl=[];for(let m=1;m<=12;m++){const a=targetArrAny(m);tl.push(a?a.reduce((x,y)=>x+y,0):null);}if(tl.some(v=>v!=null))ds.push({label:"Target 2026",data:tl,borderColor:"#8a6d1b",backgroundColor:"#8a6d1b",borderDash:[6,4],borderWidth:2,tension:.3,spanGaps:false,pointRadius:0});}
+  if(AGG.target){const tl=[];for(let m=1;m<=12;m++){const a=targetArrAny(m);tl.push(a?a.reduce((x,y)=>x+y,0):null);}if(tl.some(v=>v!=null))ds.push({label:"Target 2026",data:tl,borderColor:"#C98F00",backgroundColor:"#C98F00",borderDash:[6,4],borderWidth:2,tension:.3,spanGaps:false,pointRadius:0});}
   if(AGG.rkap2026){const P=prognosa(PROGW);if(P&&P.last<12){const pj=[];for(let m=1;m<=12;m++)pj.push(m>=P.last?Math.round(P.cum[m]):null);ds.push({label:"Proyeksi 2026",data:pj,borderColor:C.t26,backgroundColor:C.t26,borderDash:[5,4],borderWidth:2.4,tension:.3,spanGaps:false,pointRadius:0});}}
   trendChart=new Chart(document.getElementById("trendChart"),{type:"line",data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
     plugins:{legend:{position:"top",labels:{font:{family:"Inter",size:12},boxWidth:14,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${c.parsed.y.toLocaleString("id-ID")} jt`}}},
@@ -479,7 +479,7 @@ function buildChart(view){
     const sets=[
       {label:"Realisasi 2026",data:actual,borderColor:C.t26,backgroundColor:C.t26,borderWidth:3.2,tension:.3,spanGaps:false,pointRadius:2.6},
       {label:"Prognosa ("+wl+")",data:proj,borderColor:C.teal,backgroundColor:C.teal,borderDash:[6,4],borderWidth:2.6,tension:.3,spanGaps:false,pointRadius:0}];
-    if(tgt.some(v=>v!=null))sets.push({label:"Target",data:tgt,borderColor:"#8a6d1b",backgroundColor:"#8a6d1b",borderDash:[3,3],borderWidth:1.6,tension:.3,spanGaps:false,pointRadius:0});
+    if(tgt.some(v=>v!=null))sets.push({label:"Target",data:tgt,borderColor:"#C98F00",backgroundColor:"#C98F00",borderDash:[3,3],borderWidth:1.6,tension:.3,spanGaps:false,pointRadius:0});
     if(rkTot)sets.push({label:"RKAP 2026",data:labels.map((_,i)=>i===11?Math.round(rkTot):null),borderColor:C.red,backgroundColor:C.red,pointRadius:labels.map((_,i)=>i===11?6:0),pointStyle:"rectRot",showLine:false});
     chart=new Chart(document.getElementById("mainChart"),{type:"line",data:{labels,datasets:sets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       plugins:{legend:{position:"top",labels:{font:{family:"Inter",size:12},boxWidth:14,padding:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${nf(c.parsed.y)}`}}},
