@@ -542,7 +542,8 @@ function renderTable(){
   document.getElementById("thCur").childNodes[0].nodeValue=`${MONTHNAMES[MONTH]} ${YEAR} `;
   {const _f=document.getElementById("thFull");if(_f)_f.childNodes[0].nodeValue=(YEAR===TYEAR)?"Proyeksi 2026 ":"Real. Setahun ";}
   {const _rk=document.getElementById("thRkap");if(_rk)_rk.childNodes[0].nodeValue=(UNITSCOPE||ORGSCOPE)?"RKAP 2026 (AO) ":"RKAP 2026 ";}
-  let data=rows().filter(r=>r.name.toLowerCase().includes(filter));
+  let data=rows().filter(r=>r.name.toLowerCase().includes(filter))
+    .filter(r=>[r.rkap,r.full,r.target,r.prev,r.cur].some(v=>v!=null&&Math.round(v)!==0)); // sembunyikan unsur tanpa nilai
   if(sortKey)data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];if(sortKey==="name")return a.name.localeCompare(b.name)*sortDir;return ((x==null?-1e15:x)-(y==null?-1e15:y))*sortDir;});
   const t=totals();
   tbody.innerHTML=data.map(r=>`<tr class="clickable" data-unsur="${r.name.replace(/"/g,'&quot;')}" title="Klik: lihat unit dengan realisasi ${r.name} tertinggi">
