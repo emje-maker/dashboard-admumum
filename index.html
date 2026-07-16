@@ -646,7 +646,7 @@ function renderUnsurView(){
 }
 
 function renderSrc(){
-  document.getElementById("srcInfo").innerHTML=`Sumber data: <b>${SRC.mode==='bawaan'?'Bawaan':'Unggahan'}</b>${SRC.when?` · ${SRC.when}`:''}`;
+  document.getElementById("srcInfo").innerHTML=`Sumber data: <b>${SRC.mode==='bawaan'?'Bawaan':(SRC.mode==='gsheet'?'Google Sheets (online)':'Unggahan')}</b>${SRC.when?` · ${SRC.when}`:''}`;
   document.getElementById("srcTop").innerHTML=`Nilai dalam juta Rupiah`;
   document.getElementById("periodTxt").innerHTML=`Realisasi <b>s.d ${MONTHNAMES[MONTH]} ${YEAR}</b> · ${UNITSCOPE?`Unit <b>${UNITSCOPE}</b>`:ORGSCOPE?`Entitas <b>${{HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]}</b>`:`<b>Konsolidasi</b> (Holding + SHAP − Eliminasi)`} · pembanding YoY`;
 }
@@ -688,7 +688,7 @@ function pickCol(row,names){for(const k in row){const kk=String(k).trim().toLowe
 function monthNum(b){b=String(b==null?"":b).trim().toUpperCase();
   const M={JANUARI:1,JAN:1,FEBRUARI:2,FEB:2,FEBRUARY:2,MARET:3,MAR:3,MARCH:3,APRIL:4,APR:4,MEI:5,MAY:5,JUNI:6,JUN:6,JUNE:6,JULI:7,JUL:7,JULY:7,AGUSTUS:8,AGU:8,AGT:8,AUG:8,AUGUST:8,SEPTEMBER:9,SEP:9,SEPT:9,OKTOBER:10,OKT:10,OCT:10,OCTOBER:10,NOVEMBER:11,NOV:11,DESEMBER:12,DES:12,DEC:12,DECEMBER:12};
   if(M[b])return M[b];return M[b.slice(0,4)]||M[b.slice(0,3)]||null;}
-function numVal(v){if(v==null||v==="")return null;const n=parseFloat(String(v).replace(/[^0-9.\-]/g,""));return isNaN(n)?null:n;}
+function numVal(v){if(v==null||v==="")return null;const s=String(v).trim();if(!s)return null;const neg=/^\(.*\)$/.test(s)||s.charAt(0)==="-";const t=s.replace(/[^0-9.]/g,"");if(t==="")return null;const n=parseFloat(t);return isNaN(n)?null:(neg?-n:n);}
 
 // Build realisasi aggregation per year from long-format rows (cumulative Nilai). Blank-only months are skipped.
 function aggregateRealisasi(rowsRaw){
@@ -772,31 +772,60 @@ function aggregateAO(rowsRaw){
   Object.keys(unit).forEach(u=>{out.unit[u]=rnd(unit[u]);if(!out.unit[u].some(x=>x))delete out.unit[u];});
   return out;
 }
+// ===== Sinkronisasi online: Google Sheets =====
+const GSHEET_ID="18TUiBD0JNgR_WxxqwkCxYUuDsIW_ozzN"; // ID Google Sheet sumber data (diisi otomatis)
+const GSHEET_TABS=["Data ALL","SKAO 2026","AO 2026"];
+function applyWorkbook(wb,st){
+  wb.SheetNames.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn]);if(!rows.length)return;
+    const keys=Object.keys(rows[0]).map(k=>String(k).trim().toLowerCase());
+    const isAO=keys.some(k=>k==="ao 2026"||k==="ao")&&keys.indexOf("bulan")<0&&keys.indexOf("tahun")<0;
+    const isTarget=keys.indexOf("target")>=0 || (keys.indexOf("grouping")>=0 && keys.indexOf("tahun")<0);
+    const isReal=keys.indexOf("tahun")>=0 && (keys.indexOf("nilai")>=0||keys.indexOf("realisasi")>=0);
+    if(isAO){const aoo=aggregateAO(rows);if(aoo){AGG.rkap2026=aoo;st.didAO=true;}}
+    else if(isTarget){const tg=aggregateTarget(rows);if(tg){AGG.target=tg;st.didTgt=true;}}
+    else if(isReal){const res=aggregateRealisasi(rows);
+      Object.keys(res.unsur).forEach(y=>{AGG.unsur[y]=res.unsur[y];AGG.org[y]=res.org[y];AGG.unit[y]=res.unit[y];AGG.cube[y]=res.cube[y];AGG.orgcube[y]=res.orgcube[y];AGG.months[y]=res.months[y];st.yrs.push(y);});
+      AGG.u2o=Object.assign({},AGG.u2o||{},res.u2o);AGG.order=AGG.order||order();st.didReal=true;}
+  });
+}
+function finalizeUpdate(st,srcNew){
+  if(!st.didReal&&!st.didTgt&&!st.didAO)return false;
+  SRC=srcNew;
+  try{localStorage.setItem("admUmumData",JSON.stringify({agg:AGG,src:SRC}));}catch(err){}
+  ddUnit=null;UNITSCOPE="";ORGSCOPE="";fillSelectors();renderAll();
+  return true;
+}
 function handleFile(file){
   const reader=new FileReader();
   reader.onload=e=>{try{
     const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});
-    let didReal=false,didTgt=false,didAO=false,yrs=[];
-    wb.SheetNames.forEach(sn=>{
-      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn]);if(!rows.length)return;
-      const keys=Object.keys(rows[0]).map(k=>String(k).trim().toLowerCase());
-      const isAO=keys.some(k=>k==="ao 2026"||k==="ao")&&keys.indexOf("bulan")<0&&keys.indexOf("tahun")<0;
-      const isTarget=keys.indexOf("target")>=0 || (keys.indexOf("grouping")>=0 && keys.indexOf("tahun")<0);
-      const isReal=keys.indexOf("tahun")>=0 && (keys.indexOf("nilai")>=0||keys.indexOf("realisasi")>=0);
-      if(isAO){const aoo=aggregateAO(rows);if(aoo){AGG.rkap2026=aoo;didAO=true;}}
-      else if(isTarget){const tg=aggregateTarget(rows);if(tg){AGG.target=tg;didTgt=true;}}
-      else if(isReal){const res=aggregateRealisasi(rows);
-        Object.keys(res.unsur).forEach(y=>{AGG.unsur[y]=res.unsur[y];AGG.org[y]=res.org[y];AGG.unit[y]=res.unit[y];AGG.cube[y]=res.cube[y];AGG.orgcube[y]=res.orgcube[y];AGG.months[y]=res.months[y];yrs.push(y);});
-        AGG.u2o=Object.assign({},AGG.u2o||{},res.u2o);AGG.order=AGG.order||order();didReal=true;}
-    });
-    if(!didReal&&!didTgt&&!didAO){toast('Tidak ada sheet realisasi ("Data ALL") atau target ("SKAO") yang dikenali.');return;}
-    try{localStorage.setItem("admUmumData",JSON.stringify({agg:AGG,src:SRC}));}catch(err){}
-    SRC={mode:"unggahan",name:file.name,when:file.name+" · "+new Date().toLocaleDateString("id-ID")};
-    ddUnit=null;UNITSCOPE="";ORGSCOPE="";fillSelectors();renderAll();closeDrop();
-    let msg=[];if(didReal)msg.push("realisasi "+yrs.sort().join(", "));if(didTgt)msg.push("target/SKAO");if(didAO)msg.push("RKAP/AO 2026");
+    const st={didReal:false,didTgt:false,didAO:false,yrs:[]};
+    applyWorkbook(wb,st);
+    if(!finalizeUpdate(st,{mode:"unggahan",name:file.name,when:file.name+" · "+new Date().toLocaleDateString("id-ID")})){toast('Tidak ada sheet realisasi ("Data ALL") atau target ("SKAO") yang dikenali.');return;}
+    closeDrop();
+    let msg=[];if(st.didReal)msg.push("realisasi "+st.yrs.sort().join(", "));if(st.didTgt)msg.push("target/SKAO");if(st.didAO)msg.push("RKAP/AO 2026");
     toast("Data diperbarui: "+msg.join(" & ")+" ✓");
   }catch(err){toast("Gagal membaca file: "+err.message);}};
   reader.readAsArrayBuffer(file);
+}
+async function loadFromGSheet(){
+  if(!GSHEET_ID||GSHEET_ID.indexOf("__")===0)return;
+  const si=document.getElementById("srcInfo");if(si)si.innerHTML="Sumber data: <b>Google Sheets</b> · menyinkronkan…";
+  try{
+    const texts=await Promise.all(GSHEET_TABS.map(t=>
+      fetch("https://docs.google.com/spreadsheets/d/"+GSHEET_ID+"/gviz/tq?tqx=out:csv&headers=1&sheet="+encodeURIComponent(t)+"&_="+Date.now())
+      .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})));
+    const st={didReal:false,didTgt:false,didAO:false,yrs:[]};
+    texts.forEach(txt=>{applyWorkbook(XLSX.read(txt,{type:"string"}),st);});
+    if(finalizeUpdate(st,{mode:"gsheet",name:"Google Sheets",when:"sinkron "+new Date().toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"})})){
+      toast("Data tersinkron dari Google Sheets ✓");
+    }else{
+      renderAll();toast("Google Sheets terhubung, tapi format sheet tidak dikenali.");
+    }
+  }catch(err){
+    renderAll();toast("Tidak bisa terhubung ke Google Sheets — menampilkan data tersimpan terakhir.");
+  }
 }
 const drop=document.getElementById("drop"),fileInput=document.getElementById("fileInput");
 function openDrop(){drop.classList.add("show");}function closeDrop(){drop.classList.remove("show");}
@@ -810,6 +839,7 @@ drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)handleFile
 let tT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("show"),2800);}
 
 fillSelectors();renderAll();
+loadFromGSheet();
 
 function openPdfModal(){
   const org=ORGSCOPE?({HOLDING:"Holding",SHAP:"SHAP",ELIM:"Eliminasi"}[ORGSCOPE]||ORGSCOPE):"Konsolidasi";
